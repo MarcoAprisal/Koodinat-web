@@ -1,0 +1,152 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <title>Titik Koordinat dan Keterangan</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        table, th, td {
+            border: 1px solid #cccccc;
+        }
+        th, td {
+            padding: 10px;
+            text-align: center;
+        }
+        .add-point {
+            margin-top: 20px;
+        }
+        #map {
+            height: 400px;
+            margin-top: 30px;
+        }
+        button {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Daftar Titik Koordinat</h1>
+
+    <table id="coordinatesTable">
+        <thead>
+            <tr>
+                <th>Latitude</th>
+                <th>Longitude</th>
+                <th>Keterangan</th>
+                <th>Aksi</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Titik koordinat akan ditambahkan di sini -->
+        </tbody>
+    </table>
+
+    <div class="add-point">
+        <h2>Tambah Titik Baru</h2>
+        <input type="text" id="latitude" placeholder="Latitude">
+        <input type="text" id="longitude" placeholder="Longitude">
+        <input type="text" id="description" placeholder="Keterangan">
+        <button onclick="addPoint()">Tambah</button>
+    </div>
+
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        let points = JSON.parse(localStorage.getItem('points')) || [];
+        let map;
+        let markers = [];
+
+        function loadPoints() {
+            const tableBody = document.getElementById('coordinatesTable').getElementsByTagName('tbody')[0];
+            tableBody.innerHTML = '';
+
+            points.forEach((point, index) => {
+                const row = tableBody.insertRow();
+                row.insertCell(0).textContent = point.lat;
+                row.insertCell(1).textContent = point.lon;
+                row.insertCell(2).textContent = point.desc;
+                const actionsCell = row.insertCell(3);
+                actionsCell.innerHTML = `
+                    <button onclick="editPoint(${index})">Edit</button>
+                    <button onclick="deletePoint(${index})">Hapus</button>
+                `;
+            });
+
+            updateMap();
+        }
+
+        function addPoint() {
+            const lat = document.getElementById('latitude').value;
+            const lon = document.getElementById('longitude').value;
+            const desc = document.getElementById('description').value;
+
+            if (lat && lon && desc) {
+                points.push({ lat, lon, desc });
+                savePoints();
+                document.getElementById('latitude').value = '';
+                document.getElementById('longitude').value = '';
+                document.getElementById('description').value = '';
+            } else {
+                alert('Mohon isi semua kolom.');
+            }
+        }
+
+        function deletePoint(index) {
+            if (confirm('Yakin mau hapus titik ini?')) {
+                points.splice(index, 1);
+                savePoints();
+            }
+        }
+
+        function editPoint(index) {
+            const newLat = prompt('Edit Latitude:', points[index].lat);
+            const newLon = prompt('Edit Longitude:', points[index].lon);
+            const newDesc = prompt('Edit Keterangan:', points[index].desc);
+
+            if (newLat && newLon && newDesc) {
+                points[index] = { lat: newLat, lon: newLon, desc: newDesc };
+                savePoints();
+            }
+        }
+
+        function savePoints() {
+            localStorage.setItem('points', JSON.stringify(points));
+            loadPoints();
+        }
+
+        function initMap() {
+            map = L.map('map').setView([-2.5, 117.5], 5); // Fokus ke Indonesia
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+        }
+
+        function updateMap() {
+            // Hapus semua marker lama
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+
+            points.forEach(point => {
+                const marker = L.marker([point.lat, point.lon]).addTo(map)
+                    .bindPopup(`<b>${point.desc}</b><br>Lat: ${point.lat}, Lon: ${point.lon}`);
+                markers.push(marker);
+            });
+        }
+
+        initMap();
+        loadPoints();
+    </script>
+
+</body>
+</html>
